@@ -232,9 +232,13 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z"/><path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"/></svg>
             <span id="copyFixBtnText">Copy 1-Line Fix Code</span>
           </button>
+          <a id="downloadWpBtn" href="/api/download-plugin" class="scan-btn" style="background: #6366f1; text-decoration: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download WordPress Plugin (.zip)
+          </a>
           <a id="waFixBtn" href="https://wa.me/27620502091?text=Hi!%20I%20just%20ran%20the%20AEO%20audit%20and%20need%20the%20automated%20fix%20applied." target="_blank" rel="noopener" class="scan-btn" style="background: #22c55e; text-decoration: none;">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.311.045-.698.084-2.17-.525-1.748-.724-2.883-2.483-2.971-2.599-.088-.116-.714-.95-.714-1.815 0-.865.452-1.292.613-1.468.161-.176.353-.22.47-.22.118 0 .235.001.338.006.109.006.255-.041.399.304.148.354.507 1.235.551 1.324.044.089.073.193.015.309-.059.117-.088.19-.176.294-.088.103-.185.23-.264.31-.088.088-.18.184-.078.36.102.176.454.748.974 1.212.67.597 1.234.782 1.41.87.176.088.279.074.382-.044.103-.117.44-.513.558-.689.117-.176.235-.147.396-.088.161.059 1.025.484 1.202.572.176.088.293.132.337.206.044.074.044.426-.1 1.026z"/></svg>
-            Fix Automatically on WhatsApp (+27 62 050 2091)
+            Fix Automatically on WhatsApp
           </a>
         </div>
       </div>
@@ -242,100 +246,87 @@
   </div>
 
   <script>
-    function runAudit() {
+    async function runAudit() {
       var urlInput = document.getElementById("targetUrl").value.trim();
       if (!urlInput) return;
 
       var card = document.getElementById("resultsCard");
       card.style.display = "block";
-      document.getElementById("auditDomain").textContent = "Auditing: " + urlInput;
-
-      // Simulated client-side live audit based on server engine logic
-      var isCarsCaledon = urlInput.includes("8099") || urlInput.includes("carsoncaledon");
-      var score = isCarsCaledon ? 100 : 35;
-
-      document.getElementById("scoreVal").textContent = score;
-      var circle = document.getElementById("scoreCircle");
-      circle.style.borderColor = score >= 80 ? "var(--success)" : (score >= 50 ? "var(--warn)" : "var(--error)");
-      circle.style.color = circle.style.borderColor;
+      document.getElementById("auditDomain").textContent = "Auditing live: " + urlInput + "...";
+      document.getElementById("scoreVal").textContent = "...";
 
       var list = document.getElementById("checkList");
-      if (score === 100) {
+      list.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">Crawling website, inspecting Schema.org, checking robots.txt & LLMs manifest...</div>';
+
+      try {
+        var res = await fetch("/api/audit?url=" + encodeURIComponent(urlInput));
+        var data = await res.json();
+
+        if (data.error) {
+          list.innerHTML = '<div style="color: var(--error); padding: 15px;">Error: ' + data.error + ' (' + (data.details || '') + ')</div>';
+          document.getElementById("scoreVal").textContent = "!";
+          return;
+        }
+
+        var score = data.score || 0;
+        document.getElementById("scoreVal").textContent = score;
+        document.getElementById("auditDomain").textContent = data.domain || urlInput;
+
+        var circle = document.getElementById("scoreCircle");
+        circle.style.borderColor = score >= 80 ? "var(--success)" : (score >= 50 ? "var(--warn)" : "var(--error)");
+        circle.style.color = circle.style.borderColor;
+
+        var c = data.checks || {};
         list.innerHTML = `
           <div class="check-row">
-            <div class="check-icon" style="color: var(--success);">✅</div>
+            <div class="check-icon" style="color: ${c.aiCrawlersWhitelisted ? 'var(--success)' : 'var(--error)'};">
+              ${c.aiCrawlersWhitelisted ? '✅' : '❌'}
+            </div>
             <div class="check-content">
               <h4>AI Search Bot Whitelist (robots.txt)</h4>
-              <p>GPTBot, ClaudeBot, PerplexityBot, and Google-Extended are explicitly whitelisted.</p>
+              <p>${c.aiCrawlersWhitelisted ? 'GPTBot, ClaudeBot, and PerplexityBot are explicitly permitted.' : 'Missing explicit allow directives for GPTBot, ClaudeBot, and PerplexityBot.'}</p>
             </div>
           </div>
           <div class="check-row">
-            <div class="check-icon" style="color: var(--success);">✅</div>
-            <div class="check-content">
-              <h4>Answer Engine Knowledge Manifest (/llms.txt & /llms-full.txt)</h4>
-              <p>Clean Markdown knowledge tree present. Generative search engines can ingest factual offerings directly.</p>
+            <div class="check-icon" style="color: ${c.llmsManifestReady ? 'var(--success)' : 'var(--error)'};">
+              ${c.llmsManifestReady ? '✅' : '❌'}
             </div>
-          </div>
-          <div class="check-row">
-            <div class="check-icon" style="color: var(--success);">✅</div>
-            <div class="check-content">
-              <h4>Schema.org Multi-Node Entity Graph</h4>
-              <p>Valid AutoDealer / LocalBusiness + Offer structured data detected in JSON-LD format.</p>
-            </div>
-          </div>
-          <div class="check-row">
-            <div class="check-icon" style="color: var(--success);">✅</div>
-            <div class="check-content">
-              <h4>Edge Social Graph Unfurl (1200x630)</h4>
-              <p>Certified 1200x630 dimensions declared with clean descriptions for WhatsApp and Facebook.</p>
-            </div>
-          </div>
-          <div class="check-row">
-            <div class="check-icon" style="color: var(--success);">✅</div>
-            <div class="check-content">
-              <h4>Omnichannel sameAs Entity Tie-In</h4>
-              <p>Google Business Profile, Facebook, Instagram, LinkedIn, and X are interconnected into the central entity graph.</p>
-            </div>
-          </div>
-        `;
-      } else {
-        list.innerHTML = `
-          <div class="check-row">
-            <div class="check-icon" style="color: var(--error);">❌</div>
-            <div class="check-content">
-              <h4>AI Search Bot Whitelist (robots.txt)</h4>
-              <p>Missing explicit allow directives for GPTBot, ClaudeBot, and PerplexityBot.</p>
-            </div>
-          </div>
-          <div class="check-row">
-            <div class="check-icon" style="color: var(--error);">❌</div>
             <div class="check-content">
               <h4>Answer Engine Knowledge Manifest (/llms.txt)</h4>
-              <p>No /llms.txt manifest found. AI chatbots have no structured text document to cite.</p>
+              <p>${c.llmsManifestReady ? 'Live /llms.txt knowledge tree detected for generative search ingestion.' : 'No /llms.txt manifest found. AI chatbots have no factual document to cite.'}</p>
             </div>
           </div>
           <div class="check-row">
-            <div class="check-icon" style="color: var(--warn);">⚠️</div>
+            <div class="check-icon" style="color: ${c.schemaJsonLd ? 'var(--success)' : 'var(--error)'};">
+              ${c.schemaJsonLd ? '✅' : '❌'}
+            </div>
             <div class="check-content">
-              <h4>Schema.org Microdata Missing Or Generic</h4>
-              <p>Incomplete entity graph. Missing specific industry type, offers, and telephone schema.</p>
+              <h4>Schema.org Multi-Node Entity Graph</h4>
+              <p>${c.schemaJsonLd ? 'Valid JSON-LD structured data detected on page.' : 'Incomplete entity graph. Missing Schema.org LocalBusiness or Product JSON-LD.'}</p>
             </div>
           </div>
           <div class="check-row">
-            <div class="check-icon" style="color: var(--error);">❌</div>
+            <div class="check-icon" style="color: ${c.socialUnfurlMeta ? 'var(--success)' : 'var(--error)'};">
+              ${c.socialUnfurlMeta ? '✅' : '❌'}
+            </div>
             <div class="check-content">
-              <h4>Unoptimized Social Previews</h4>
-              <p>Links shared to WhatsApp and Facebook will lack dedicated 1200x630 price tags and badges.</p>
+              <h4>Edge Social Graph Unfurl (1200x630)</h4>
+              <p>${c.socialUnfurlMeta ? 'Open Graph title, description, and preview image detected.' : 'Unoptimized social previews. Missing complete Open Graph tags.'}</p>
             </div>
           </div>
           <div class="check-row">
-            <div class="check-icon" style="color: var(--error);">❌</div>
+            <div class="check-icon" style="color: ${c.omnichannelSocialLinked ? 'var(--success)' : 'var(--warn)'};">
+              ${c.omnichannelSocialLinked ? '✅' : '⚠️'}
+            </div>
             <div class="check-content">
-              <h4>Disconnected Social Authority (No sameAs)</h4>
-              <p>GBP, Instagram, Facebook, and LinkedIn profiles are isolated and not verified in the machine graph.</p>
+              <h4>Omnichannel sameAs Entity Authority</h4>
+              <p>${c.omnichannelSocialLinked ? 'Google Maps, Facebook, and Instagram profiles are interconnected.' : 'Disconnected social authority. GBP, Facebook, and Instagram are isolated.'}</p>
             </div>
           </div>
         `;
+      } catch (err) {
+        list.innerHTML = '<div style="color: var(--error); padding: 15px;">Failed to scan website. Check that the domain is reachable.</div>';
+        document.getElementById("scoreVal").textContent = "!";
       }
 
       // Dynamically generate exact 1-line embed script for their domain
