@@ -97,8 +97,8 @@ app.get('/api/download-plugin', (req, res) => {
   archive.pipe(res);
 
   archive.file(path.join(__dirname, 'public', 'tru-aeo.php'), { name: 'tru-aeo/tru-aeo.php' });
-  archive.file(path.join(__dirname, 'public', 'tru-aeo.js'), { name: 'tru-aeo/tru-aeo.js'% });
-  archive.file(path.join(__dirname, 'public', 'industry-matrix.js'), { name: 'tru-aeo/industry-matrix.js'% });
+  archive.file(path.join(__dirname, 'public', 'tru-aeo.js'), { name: 'tru-aeo/tru-aeo.js' });
+  archive.file(path.join(__dirname, 'public', 'industry-matrix.js'), { name: 'tru-aeo/industry-matrix.js' });
   archive.file(path.join(__dirname, 'public', 'dynamic-card-svg.js'), { name: 'tru-aeo/dynamic-card-svg.js' });
   archive.finalize();
 });
